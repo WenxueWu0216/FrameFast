@@ -47,6 +47,7 @@ def ssim(
     data_range: float = 1.0,
     win_size: int = 11,
     sigma: float = 1.5,
+    frame_chunk: int = 4,
 ) -> float:
     """Mean structural similarity over frames and channels.
 
@@ -57,28 +58,35 @@ def ssim(
         ref, test: ``(F, C, H, W)`` or ``(C, H, W)`` tensors in ``[0, data_range]``.
     """
     _check_pair(ref, test)
-    x = ref.double()
-    y = test.double()
-    if x.dim() == 3:
-        x, y = x[None], y[None]
-    _, c, h, w = x.shape
+    if ref.dim() == 3:
+        ref, test = ref[None], test[None]
+    _, c, h, w = ref.shape
     win = min(win_size, h, w)
     if win % 2 == 0:
         win -= 1
-    kernel = _gaussian_window(win, sigma, x.device)[None, None].expand(c, 1, win, win)
+    kernel = _gaussian_window(win, sigma, ref.device)[None, None].expand(c, 1, win, win)
+    c1 = (0.01 * data_range) ** 2
+    c2 = (0.03 * data_range) ** 2
 
     def filt(t: torch.Tensor) -> torch.Tensor:
         return F.conv2d(t, kernel, groups=c)
 
-    c1 = (0.01 * data_range) ** 2
-    c2 = (0.03 * data_range) ** 2
-    mu_x, mu_y = filt(x), filt(y)
-    sxx = filt(x * x) - mu_x**2
-    syy = filt(y * y) - mu_y**2
-    sxy = filt(x * y) - mu_x * mu_y
-    num = (2 * mu_x * mu_y + c1) * (2 * sxy + c2)
-    den = (mu_x**2 + mu_y**2 + c1) * (sxx + syy + c2)
-    return float((num / den).mean().item())
+    # Process a few frames at a time: a 49-frame 480x720 video in float64 with the ~10 filtered
+    # intermediates would otherwise need several GB of RAM.
+    total, count = 0.0, 0
+    for i in range(0, ref.shape[0], frame_chunk):
+        x = ref[i : i + frame_chunk].double()
+        y = test[i : i + frame_chunk].double()
+        mu_x, mu_y = filt(x), filt(y)
+        sxx = filt(x * x) - mu_x**2
+        syy = filt(y * y) - mu_y**2
+        sxy = filt(x * y) - mu_x * mu_y
+        num = (2 * mu_x * mu_y + c1) * (2 * sxy + c2)
+        den = (mu_x**2 + mu_y**2 + c1) * (sxx + syy + c2)
+        smap = num / den
+        total += float(smap.sum().item())
+        count += smap.numel()
+    return total / count
 
 
 class LPIPSMetric:

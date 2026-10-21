@@ -35,6 +35,7 @@ def test_ssim_matches_skimage():
             use_sample_covariance=False,
         )
     assert ours == pytest.approx(ref / a.shape[0], abs=1e-4)
+    assert ssim(a, b, frame_chunk=1) == pytest.approx(ours, abs=1e-12)  # chunking is exact
 
 
 def test_ssim_identical_is_one():
