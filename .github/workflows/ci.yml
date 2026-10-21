@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "ruff>=0.6"
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU-only torch + triton (interpreter mode) + package
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install triton
+          pip install -e ".[dev]"
+      - name: Unit tests (Triton kernels run in TRITON_INTERPRET mode, GPU tests skip)
+        run: python -m pytest -q -rs
+      - name: Harness smoke test (tiny random-weight model on CPU)
+        run: make bench-cpu-smoke
+      - name: Placeholder report is up to date
+        run: |
+          make results-placeholder
+          git diff --exit-code docs/results.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-results
+          path: build/smoke/

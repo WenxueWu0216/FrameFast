@@ -64,14 +64,13 @@ def render(data: dict[str, Any]) -> str:
             f"- GPU: {env['gpu']} ({env.get('gpu_mem_gb')} GB, CC {env.get('compute_capability')}), "
             f"driver {env.get('driver')}"
         )
-    lines.append(
-        "- Software: "
-        + ", ".join(
-            f"{k} {env[k]}"
-            for k in ("torch", "cuda_runtime", "diffusers", "triton", "torchao", "torch_tensorrt")
-            if env.get(k)
-        )
+    software = ", ".join(
+        f"{k} {env[k]}"
+        for k in ("torch", "cuda_runtime", "diffusers", "triton", "torchao", "torch_tensorrt")
+        if env.get(k)
     )
+    if software:
+        lines.append(f"- Software: {software}")
     if env.get("git_sha") or env.get("timestamp_utc"):
         lines.append(f"- Commit `{env.get('git_sha')}` · {env.get('timestamp_utc')}")
     if not data.get("lpips_available", False):
