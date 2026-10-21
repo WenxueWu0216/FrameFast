@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "framefast"
+version = "0.1.0"
+description = "Inference-optimization ladder and benchmark harness for open-source video diffusion (CogVideoX-2B)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "torch>=2.5",
+    "diffusers>=0.32",
+    "transformers>=4.44",
+    "accelerate>=0.33",
+    "sentencepiece",
+    "numpy",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+gpu = [
+    "triton>=3.0; platform_system == 'Linux'",
+    "torchao>=0.8",
+    "lpips>=0.1.4",
+    "imageio>=2.30",
+    "imageio-ffmpeg",
+]
+trt = ["torch-tensorrt"]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "scikit-image>=0.22",
+]
+
+[tool.setuptools.packages.find]
+include = ["framefast*", "bench*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "gpu: requires a CUDA device (skipped automatically when none is present)",
+    "slow: slower CPU tests (torch.compile on CPU)",
+]
