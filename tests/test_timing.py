@@ -22,3 +22,11 @@ def test_stage_timer_rejects_user_callback(tiny_pipe, tiny_call):
     timer = StageTimer(tiny_pipe, cuda=False)
     with timer.attach(), pytest.raises(ValueError):
         timer.call(callback_on_step_end=lambda *a: {}, **tiny_call)
+
+
+def test_tiny_pipeline_is_deterministic(tiny_pipe, tiny_call):
+    import torch
+
+    a = tiny_pipe(**tiny_call).frames
+    b = tiny_pipe(**dict(tiny_call, generator=torch.Generator().manual_seed(0))).frames
+    assert torch.equal(a, b)

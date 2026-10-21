@@ -123,9 +123,11 @@ def build_tiny_pipeline(max_sequence_length: int = 16, seed: int = 0) -> Any:
     scheduler = CogVideoXDDIMScheduler()
     pipe = CogVideoXPipeline(
         tokenizer=_tiny_tokenizer(max_sequence_length),
-        text_encoder=text_encoder,
-        vae=vae,
-        transformer=transformer,
+        # Freshly constructed modules are in training mode (dropout on); from_pretrained would
+        # have called eval() for us.
+        text_encoder=text_encoder.eval(),
+        vae=vae.eval(),
+        transformer=transformer.eval(),
         scheduler=scheduler,
     )
     pipe.set_progress_bar_config(disable=True)
