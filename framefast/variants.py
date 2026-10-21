@@ -257,10 +257,9 @@ def _trt_transformer(pipe: Any, ctx: RunContext) -> list[str]:
 
 def _trt_vae(pipe: Any, ctx: RunContext) -> list[str]:
     """Export ``vae.decode`` for the run's latent shape and compile it with Torch-TensorRT."""
-    import torch_tensorrt  # type: ignore[import-not-found]
     from diffusers.models.autoencoders.vae import DecoderOutput
 
-    from framefast.trt import VAEDecodeWrapper, capture_transformer_inputs, probe_export
+    from framefast.trt import VAEDecodeWrapper, capture_transformer_inputs, probe_export, trt_compile
 
     cap = capture_transformer_inputs(pipe, dict(ctx.call_kwargs))
     b2, f, c, h, w = cap["hidden_states"].shape
@@ -270,9 +269,7 @@ def _trt_vae(pipe: Any, ctx: RunContext) -> list[str]:
     notes = [probe.summary()]
     if ep is None:
         raise RuntimeError(probe.summary())
-    compiled = torch_tensorrt.dynamo.compile(
-        ep, arg_inputs=[z], enabled_precisions={ctx.dtype}, truncate_double=True, min_block_size=1
-    )
+    compiled = trt_compile(ep, [z], ctx.dtype)
     expected = tuple(z.shape)
 
     def decode(latents: torch.Tensor, return_dict: bool = True) -> Any:

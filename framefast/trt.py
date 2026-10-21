@@ -232,14 +232,39 @@ def count_trt_partitions(compiled: Any) -> tuple[int, int]:
     return trt, torch_fallback
 
 
+def trt_compile(exported: Any, inputs: list[torch.Tensor], dtype: torch.dtype) -> Any:
+    """Version-tolerant ``torch_tensorrt.dynamo.compile`` of an exported program.
+
+    Torch-TensorRT <= 2.8 selects precision with ``enabled_precisions``; newer releases are
+    strongly typed (layer precision follows the graph's dtypes — fp16 here, since the model is
+    loaded in fp16) and no longer accept that argument. Only arguments present in the installed
+    version's signature are passed.
+    """
+    import inspect
+
+    import torch_tensorrt  # type: ignore[import-not-found]
+
+    params = inspect.signature(torch_tensorrt.dynamo.compile).parameters
+    kwargs: dict[str, Any] = {
+        "arg_inputs": inputs,
+        "truncate_double": True,
+        "min_block_size": 1,
+        "require_full_compilation": False,
+    }
+    if "enabled_precisions" in params:
+        kwargs["enabled_precisions"] = {dtype}
+    if "use_explicit_typing" in params:
+        kwargs["use_explicit_typing"] = False
+    kwargs = {k: v for k, v in kwargs.items() if k in params}
+    return torch_tensorrt.dynamo.compile(exported, **kwargs)
+
+
 def compile_transformer_trt(pipe: Any, call_kwargs: dict[str, Any], dtype: torch.dtype) -> list[str]:
     """Replace ``pipe.transformer`` with a Torch-TensorRT engine for the shapes of ``call_kwargs``.
 
     Returns:
         Human-readable notes (export probe, partition counts, build time) for the report.
     """
-    import torch_tensorrt  # type: ignore[import-not-found]
-
     notes: list[str] = []
     transformer = pipe.transformer
     captured = capture_transformer_inputs(pipe, call_kwargs)
@@ -252,15 +277,7 @@ def compile_transformer_trt(pipe: Any, call_kwargs: dict[str, Any], dtype: torch
     if ep is None:
         raise RuntimeError(probe.summary())
     t0 = time.perf_counter()
-    compiled = torch_tensorrt.dynamo.compile(
-        ep,
-        arg_inputs=list(args),
-        enabled_precisions={dtype},
-        use_explicit_typing=False,
-        truncate_double=True,
-        min_block_size=1,
-        require_full_compilation=False,
-    )
+    compiled = trt_compile(ep, list(args), dtype)
     n_trt, n_fallback = count_trt_partitions(compiled)
     notes.append(
         f"TRT build {time.perf_counter() - t0:.0f}s; {n_trt} TensorRT engine(s), {n_fallback} PyTorch fallback subgraph(s)"
