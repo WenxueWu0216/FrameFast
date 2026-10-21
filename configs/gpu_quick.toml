@@ -1,0 +1,16 @@
+# Quick GPU sanity pass (~minutes): fewer steps/runs and a short ladder. Writes to runs/, not docs/.
+name = "gpu-quick"
+model_id = "THUDM/CogVideoX-2b"
+device = "cuda"
+dtype = "float16"
+height = 480
+width = 720
+num_frames = 49
+num_inference_steps = 5
+warmup = 1
+runs = 3
+seeds = [0]
+prompts = ["A golden retriever running through a sunlit meadow, slow motion, cinematic lighting."]
+variants = ["baseline", "compile", "attn_math", "attn_flash", "int8_wo", "triton_adaln", "vae_tiling"]
+output_dir = "runs/gpu_quick"
+results_md = "runs/gpu_quick/results.md"

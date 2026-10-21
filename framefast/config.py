@@ -34,6 +34,7 @@ DEFAULT_LADDER: tuple[str, ...] = (
     "int8_wo",
     "compile+int8_wo",
     "int8_dyn",
+    "fp8_wo",
     "fp8_dyn",
     "compile+fp8_dyn",
     # 4. custom Triton kernel
@@ -41,6 +42,7 @@ DEFAULT_LADDER: tuple[str, ...] = (
     "compile+triton_adaln",
     # 5. TensorRT
     "trt_transformer",
+    "trt_vae",
     # 6. memory / batching
     "vae_tiling",
     "vae_slicing+bs2",

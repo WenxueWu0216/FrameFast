@@ -146,6 +146,8 @@ def _launch(
     return y
 
 
+_launch_eager = torch._dynamo.disable(_launch)
+
 _triton_op: Any = None
 if HAS_TRITON and hasattr(torch.library, "triton_op"):
     # Registering as a ``triton_op`` makes the kernel visible to torch.compile/inductor (no graph
@@ -210,7 +212,8 @@ def ln_modulate(
         raise RuntimeError("Triton backend on CPU tensors requires TRITON_INTERPRET=1")
     if x.is_cuda and _triton_op is not None:
         return _triton_op(x, weight, bias, scale, shift, eps)
-    return _launch(x, weight, bias, scale, shift, eps)
+    # Interpreter (CPU) path: dynamo cannot trace interpreted kernels, so keep it opaque.
+    return _launch_eager(x, weight, bias, scale, shift, eps)
 
 
 def _fused_layernorm_zero_forward(
