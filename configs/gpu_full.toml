@@ -1,0 +1,14 @@
+# Publication-grade run: 50 steps (CogVideoX default), 10 timed runs, 3 prompts x 2 seeds.
+name = "gpu-full"
+model_id = "THUDM/CogVideoX-2b"
+device = "cuda"
+dtype = "float16"
+height = 480
+width = 720
+num_frames = 49
+num_inference_steps = 50
+warmup = 2
+runs = 10
+seeds = [0, 1]
+output_dir = "runs/gpu_full"
+results_md = "docs/results.md"

@@ -1,0 +1,40 @@
+# CI smoke test: tiny random-weight CogVideoX on CPU. Verifies the harness end to end
+# (variant application, timing, quality comparison, report). Timings are NOT performance data.
+name = "cpu-smoke"
+model_id = "tiny-random"
+device = "cpu"
+dtype = "float32"
+height = 32
+width = 32
+num_frames = 9
+num_inference_steps = 2
+guidance_scale = 6.0
+warmup = 1
+runs = 3
+max_sequence_length = 16
+prompts = [
+  "a golden retriever running through a sunlit meadow",
+  "aerial drone shot of waves crashing against black volcanic rocks at sunset",
+]
+seeds = [0]
+variants = [
+  "baseline",
+  "compile",
+  "attn_math",
+  "fuse_qkv",
+  "int8_wo_ref",
+  "int8_wo",
+  "triton_adaln",
+  "compile+triton_adaln",
+  "vae_tiling",
+  "vae_slicing+bs2",
+  "bs2",
+  # The following are expected to be reported as skipped on CPU (exercises skip handling):
+  "compile_cudagraphs",
+  "attn_flash",
+  "fp8_dyn",
+  "trt_transformer",
+  "cpu_offload_model",
+]
+output_dir = "build/smoke"
+results_md = "build/smoke/results.md"

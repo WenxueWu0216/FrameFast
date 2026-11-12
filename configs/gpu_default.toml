@@ -1,0 +1,19 @@
+# Default GPU ladder: CogVideoX-2B, native resolution/length, 20 denoising steps.
+# 20 (not 50) steps keeps the full ladder to a few hours on an A100/H100; per-step latency is
+# reported separately so a 50-step latency can be read off as text + 50*step + VAE.
+name = "gpu-default"
+model_id = "THUDM/CogVideoX-2b"
+device = "cuda"
+dtype = "float16"
+height = 480
+width = 720
+num_frames = 49
+num_inference_steps = 20
+guidance_scale = 6.0
+warmup = 2
+runs = 8
+max_sequence_length = 226
+seeds = [0]
+output_dir = "runs/gpu_default"
+results_md = "docs/results.md"
+# `variants` and `prompts` default to framefast.config.DEFAULT_LADDER / DEFAULT_PROMPTS.
